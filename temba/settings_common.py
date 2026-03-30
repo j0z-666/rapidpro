@@ -148,16 +148,16 @@ MEDIA_URL = "/media/"
 # -----------------------------------------------------------------------------------
 # Email
 # -----------------------------------------------------------------------------------
-EMAIL_HOST = "smtp.gmail.com"
-EMAIL_HOST_USER = "server@temba.io"
-DEFAULT_FROM_EMAIL = "Temba <server@temba.io>"
-EMAIL_HOST_PASSWORD = "mypassword"
-EMAIL_USE_TLS = True
-EMAIL_TIMEOUT = 10
+EMAIL_HOST = os.getenv("EMAIL_HOST", "smtp.gmail.com")
+EMAIL_PORT = int(os.getenv("EMAIL_PORT", 587))
+EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER", "")
+EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD", "")
+EMAIL_USE_TLS = os.getenv("EMAIL_USE_TLS", "true").lower() == "true"
+EMAIL_USE_SSL = os.getenv("EMAIL_USE_SSL", "false").lower() == "true"
+EMAIL_TIMEOUT = int(os.getenv("EMAIL_TIMEOUT", 10))
 
-# Used when sending email from within a flow and the user hasn't configured
-# their own SMTP server.
-FLOW_FROM_EMAIL = "Temba <no-reply@temba.io>"
+DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", EMAIL_HOST_USER)
+FLOW_FROM_EMAIL = os.getenv("FLOW_FROM_EMAIL", EMAIL_HOST_USER)
 
 # -----------------------------------------------------------------------------------
 # Templates
