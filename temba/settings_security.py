@@ -14,6 +14,8 @@ SECURE_REDIRECT_EXEMPT = []
 SECURE_SSL_HOST = None
 SECURE_SSL_REDIRECT = False
 
+USE_X_FORWARDED_HOST = True  # ← Esto es CRÍTICO
+
 # cross-site request forgery prevention
 CSRF_COOKIE_SECURE = True
 CSRF_COOKIE_SAMESITE = "Lax"

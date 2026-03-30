@@ -11,6 +11,7 @@
 import warnings
 
 from .settings_common import *  # noqa
+from .settings_security import *
 
 DEBUG = True
 
