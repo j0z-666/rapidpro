@@ -27,9 +27,9 @@ DATA_UPLOAD_MAX_NUMBER_FIELDS = 2500  # needed for exports of big workspaces
 # Alberto, IMPORTANTE: quite los ifs donde se asignaba un valor diferente a las variables dependiendo de si se estaba en modo testing o no, para evitar confusiones y errores, ahora el valor es el mismo para ambos casos, pero si es necesario cambiarlo para testing, se puede hacer manualmente comentando o descomentando las líneas correspondientes.
 TESTING = sys.argv[1:2] == ["test"]
 
-if TESTING:
-    PASSWORD_HASHERS = ("django.contrib.auth.hashers.MD5PasswordHasher",)
-    DEBUG = False
+# if TESTING:
+#     PASSWORD_HASHERS = ("django.contrib.auth.hashers.MD5PasswordHasher",)
+#     DEBUG = False
 
 _db_host = "postgres"
 _valkey_host = "valkey"
