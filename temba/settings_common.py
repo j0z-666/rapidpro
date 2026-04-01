@@ -24,6 +24,7 @@ DATA_UPLOAD_MAX_NUMBER_FIELDS = 2500  # needed for exports of big workspaces
 # -----------------------------------------------------------------------------------
 # Tests
 # -----------------------------------------------------------------------------------
+# Alberto, IMPORTANTE: quite los ifs donde se asignaba un valor diferente a las variables dependiendo de si se estaba en modo testing o no, para evitar confusiones y errores, ahora el valor es el mismo para ambos casos, pero si es necesario cambiarlo para testing, se puede hacer manualmente comentando o descomentando las líneas correspondientes.
 TESTING = sys.argv[1:2] == ["test"]
 
 if TESTING:
@@ -43,13 +44,15 @@ AWS_SECRET_ACCESS_KEY = "tembatemba"
 AWS_REGION = "us-east-1"
 
 DYNAMO_ENDPOINT_URL = f"http://{_localstack_host}:4566"
-DYNAMO_TABLE_PREFIX = "Test" if TESTING else "Temba"
+# DYNAMO_TABLE_PREFIX = "Test" if TESTING else "Temba"
+DYNAMO_TABLE_PREFIX = "Test"
 
 # -----------------------------------------------------------------------------------
 # Storage
 # -----------------------------------------------------------------------------------
 
-BUCKET_PREFIX = "test" if TESTING else "temba"
+# BUCKET_PREFIX = "test" if TESTING else "temba"
+BUCKET_PREFIX = "test"
 
 STORAGES = {
     # default storage for things like exports, imports
@@ -648,7 +651,8 @@ DEFAULT_AUTO_FIELD = "django.db.models.AutoField"
 # -----------------------------------------------------------------------------------
 # Cache
 # -----------------------------------------------------------------------------------
-_valkey_url = f"redis://{_valkey_host}:6379/{10 if TESTING else 15}"
+# _valkey_url = f"redis://{_valkey_host}:6379/{10 if TESTING else 15}"
+_valkey_url = f"redis://{_valkey_host}:6379/{10}"
 
 CACHES = {
     "default": {
@@ -719,13 +723,17 @@ REST_HANDLE_EXCEPTIONS = not TESTING
 # Compression
 # -----------------------------------------------------------------------------------
 
-if TESTING:
-    # if only testing, disable less compilation
-    COMPRESS_PRECOMPILERS = ()
-else:
-    COMPRESS_PRECOMPILERS = (
-        ("text/less", 'lessc --include-path="%s" {infile} {outfile}' % os.path.join(PROJECT_DIR, "../static", "less")),
-    )
+# if TESTING:
+#     # if only testing, disable less compilation
+#     COMPRESS_PRECOMPILERS = ()
+# else:
+#     COMPRESS_PRECOMPILERS = (
+#         ("text/less", 'lessc --include-path="%s" {infile} {outfile}' % os.path.join(PROJECT_DIR, "../static", "less")),
+#     )
+
+COMPRESS_PRECOMPILERS = (
+    ("text/less", 'lessc --include-path="%s" {infile} {outfile}' % os.path.join(PROJECT_DIR, "../static", "less")),
+)
 
 COMPRESS_FILTERS = {
     "css": ["compressor.filters.css_default.CssAbsoluteFilter"],
@@ -836,8 +844,8 @@ LLM_TYPES = {
         "models": ["gpt-4.1", "gpt-4.1-mini", "gpt-4.1-nano", "gpt-4o", "gpt-4o-mini", "gpt-3.5-turbo"],
     },
 }
-if TESTING:
-    LLM_TYPES["temba.ai.types.openai_azure.type.OpenAIAzureType"] = {"models": ["gpt-35-turbo", "gpt-4"]}
+# if TESTING:
+#     LLM_TYPES["temba.ai.types.openai_azure.type.OpenAIAzureType"] = {"models": ["gpt-35-turbo", "gpt-4"]}
 
 
 # set of ISO-639-3 codes of languages to allow in addition to all ISO-639-1 languages
