@@ -198,7 +198,8 @@ class ClaimView(BaseClaimNumberMixin, SmartFormView):
             status_callback_method="POST",
             status_callback=status_url,
             voice_fallback_method="GET",
-            voice_fallback_url=f"{settings.STORAGE_URL}/voice_unavailable.xml",
+            #voice_fallback_url=f"{settings.STORAGE_URL}/voice_unavailable.xml",
+            voice_fallback_url=f"https://automation.nono-labs.com/webhook/twilio_voice_unavailable",
         )
 
         is_short_code = len(phone_number) <= 6
