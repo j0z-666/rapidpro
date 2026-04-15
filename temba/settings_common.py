@@ -82,7 +82,7 @@ STORAGES = {
 
 # settings used by django-storages (defaults to localstack)
 AWS_S3_REGION_NAME = AWS_REGION
-AWS_S3_ENDPOINT_URL = f"http://{_localstack_host}:4566"
+AWS_S3_ENDPOINT_URL = "http://minio:9000" #TO DO Alberto: parametrizar minio en env variable
 AWS_S3_ADDRESSING_STYLE = "path"
 AWS_S3_FILE_OVERWRITE = False
 
