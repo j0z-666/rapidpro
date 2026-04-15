@@ -52,7 +52,7 @@ DYNAMO_TABLE_PREFIX = "Test"
 # -----------------------------------------------------------------------------------
 
 # BUCKET_PREFIX = "test" if TESTING else "temba"
-BUCKET_PREFIX = "test"
+BUCKET_PREFIX = "temba"
 
 STORAGES = {
     # default storage for things like exports, imports
