@@ -73,6 +73,7 @@ STORAGES = {
             "signature_version": "s3v4",
             "default_acl": "public-read",
             "querystring_auth": False,
+            "custom_domain": "rapidpro.nono-labs.com/media",
         },
     },
     # standard Django static files storage
@@ -85,8 +86,7 @@ AWS_S3_ENDPOINT_URL = f"http://{_localstack_host}:4566"
 AWS_S3_ADDRESSING_STYLE = "path"
 AWS_S3_FILE_OVERWRITE = False
 
-#STORAGE_URL = f"{AWS_S3_ENDPOINT_URL}/{BUCKET_PREFIX}-default"
-STORAGE_URL = f"https://rapidpro.nono-labs.com/media" #TO DO Alberto, revisar en donde se va a servir el bucket en nuestro ambiente prod, por el momento esta en localstack y caddy es el que hace la redireccion correcta
+STORAGE_URL = f"{AWS_S3_ENDPOINT_URL}/{BUCKET_PREFIX}-default"
 
 # -----------------------------------------------------------------------------------
 # Localization
