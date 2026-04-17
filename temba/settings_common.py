@@ -73,7 +73,7 @@ STORAGES = {
             "signature_version": "s3v4",
             "default_acl": "public-read",
             "querystring_auth": False,
-            "custom_domain": "rapidpro.nono-labs.com/media",
+            "custom_domain": "rapidpro.nono-labs.com/media", #TO DO Alberto: validar si esto tiene que ser asi (que el front busque la imagen por el proxy) o si django puede devolver una 
         },
     },
     # standard Django static files storage
