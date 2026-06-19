@@ -140,8 +140,8 @@ class TembaTest(SmartminTest):
 
         self.country.update_path()
 
-        self.org.country = self.country
-        self.org.save(update_fields=("country",))
+        self.org.root_location = self.country
+        self.org.save(update_fields=("root_location",))
 
     def login(self, user, *, choose_org=None):
         self.assertTrue(
@@ -389,7 +389,7 @@ class TembaTest(SmartminTest):
             assert channel and contact_urn, "messages require a channel and contact URN, except for failed_reason=D"
 
         return Msg.objects.create(
-            uuid=uuid7(),
+            uuid=uuid7(created_on or timezone.now()),
             org=org,
             direction=direction,
             contact=contact,

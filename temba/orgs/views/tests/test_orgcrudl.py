@@ -144,7 +144,7 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
         self.child_org = Org.objects.create(
             name="Child Org",
             timezone=ZoneInfo("Africa/Kigali"),
-            country=self.org.country,
+            root_location=self.org.root_location,
             created_by=self.admin,
             modified_by=self.admin,
             parent=self.org,
@@ -387,11 +387,9 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
             signup_url,
             {
                 "email": "canbeanything@temba.io",
-                "workspace": "Ignored",
                 "password1": self.default_password,
                 "first_name": "Edwin",
                 "last_name": "Kagabo",
-                "timezone": "Africa/Kigali",
             },
             follow=True,
         )
@@ -1195,3 +1193,15 @@ class OrgCRUDLTest(TembaTest, CRUDLTestMixin):
         self.assertRedirect(response, "/msg")
         self.assertEqual(str(self.org2.uuid), self.client.session["org_uuid"])
         self.assertEqual(self.org2.id, self.client.session["org_id"])
+
+        # external next URL should be ignored and fall back to start
+        response = self.client.post(
+            reverse("orgs.org_switch"), {"other_org": self.org2.id, "next": "https://evil.example.com/"}
+        )
+        self.assertRedirect(response, reverse("orgs.org_start"))
+
+        # schemeless external URL should also be rejected
+        response = self.client.post(
+            reverse("orgs.org_switch"), {"other_org": self.org2.id, "next": "//evil.example.com/"}
+        )
+        self.assertRedirect(response, reverse("orgs.org_start"))

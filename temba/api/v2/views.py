@@ -17,7 +17,6 @@ from django.utils.translation import gettext_lazy as _
 from temba.archives.models import Archive
 from temba.campaigns.models import Campaign, CampaignEvent
 from temba.channels.models import Channel, ChannelCount, ChannelEvent
-from temba.classifiers.models import Classifier
 from temba.contacts.models import Contact, ContactField, ContactGroup, ContactNote, ContactURN
 from temba.flows.models import Flow, FlowRun, FlowStart, FlowStartCount
 from temba.globals.models import Global
@@ -56,7 +55,6 @@ from .serializers import (
     CampaignWriteSerializer,
     ChannelEventReadSerializer,
     ChannelReadSerializer,
-    ClassifierReadSerializer,
     ContactBulkActionSerializer,
     ContactFieldReadSerializer,
     ContactFieldWriteSerializer,
@@ -115,7 +113,6 @@ class ExplorerView(OrgPermsMixin, SmartTemplateView):
             CampaignEventsEndpoint.get_write_explorer(),
             CampaignEventsEndpoint.get_delete_explorer(),
             ChannelsEndpoint.get_read_explorer(),
-            ClassifiersEndpoint.get_read_explorer(),
             ContactsEndpoint.get_read_explorer(),
             ContactsEndpoint.get_write_explorer(),
             ContactsEndpoint.get_delete_explorer(),
@@ -178,7 +175,6 @@ class RootView(BaseEndpoint):
      * [/api/v2/campaigns](/api/v2/campaigns) - to list, create, or update campaigns
      * [/api/v2/campaign_events](/api/v2/campaign_events) - to list, create, update or delete campaign events
      * [/api/v2/channels](/api/v2/channels) - to list channels
-     * [/api/v2/classifiers](/api/v2/classifiers) - to list classifiers
      * [/api/v2/contacts](/api/v2/contacts) - to list, create, update or delete contacts
      * [/api/v2/contact_actions](/api/v2/contact_actions) - to perform bulk contact actions
      * [/api/v2/fields](/api/v2/fields) - to list, create or update contact fields
@@ -284,7 +280,6 @@ class RootView(BaseEndpoint):
                 "campaigns": reverse("api.v2.campaigns", request=request),
                 "campaign_events": reverse("api.v2.campaign_events", request=request),
                 "channels": reverse("api.v2.channels", request=request),
-                "classifiers": reverse("api.v2.classifiers", request=request),
                 "contacts": reverse("api.v2.contacts", request=request),
                 "contact_actions": reverse("api.v2.contact_actions", request=request),
                 "fields": reverse("api.v2.fields", request=request),
@@ -412,10 +407,10 @@ class BoundariesEndpoint(ListAPIMixin, BaseEndpoint):
 
     def derive_queryset(self):
         org = self.request.org
-        if not org.country:
+        if not org.root_location:
             return AdminBoundary.objects.none()
 
-        queryset = org.country.get_descendants(include_self=True)
+        queryset = org.root_location.get_descendants(include_self=True)
 
         queryset = queryset.prefetch_related(
             Prefetch("aliases", queryset=BoundaryAlias.objects.filter(org=org).order_by("name"))
@@ -1035,82 +1030,6 @@ class ChannelEventsEndpoint(ListAPIMixin, BaseEndpoint):
         )
 
         return self.filter_before_after(queryset, "created_on")
-
-
-class ClassifiersEndpoint(ListAPIMixin, BaseEndpoint):
-    """
-    This endpoint allows you to list the active natural language understanding classifiers on your account.
-
-    ## Listing Classifiers
-
-    A **GET** returns the classifiers for your organization, most recent first.
-
-     * **uuid** - the UUID of the classifier, filterable as `uuid`.
-     * **name** - the name of the classifier.
-     * **intents** - the list of intents this classifier exposes (list of strings).
-     * **type** - the type of the classifier, one of `wit`, `luis` or `bothub`.
-     * **created_on** - when this classifier was created.
-
-    Example:
-
-        GET /api/v2/classifiers.json
-
-    Response:
-
-        {
-            "next": null,
-            "previous": null,
-            "results": [
-            {
-                "uuid": "9a8b001e-a913-486c-80f4-1356e23f582e",
-                "name": "Temba Classifier",
-                "intents": ["book_flight", "book_car"],
-                "type": "wit",
-                "created_on": "2013-02-27T09:06:15.456"
-            },
-            ...
-
-    """
-
-    model = Classifier
-    serializer_class = ClassifierReadSerializer
-    pagination_class = CreatedOnCursorPagination
-
-    def filter_queryset(self, queryset):
-        org = self.request.org
-        queryset = queryset.filter(org=org, is_active=True)
-
-        # filter by uuid (optional)
-        if uuid := self.get_uuid_param("uuid"):
-            queryset = queryset.filter(uuid=uuid)
-
-        return self.filter_before_after(queryset, "created_on")
-
-    @classmethod
-    def get_read_explorer(cls):
-        return {
-            "method": "GET",
-            "title": "List Classifiers",
-            "url": reverse("api.v2.classifiers"),
-            "slug": "classifier-list",
-            "params": [
-                {
-                    "name": "uuid",
-                    "required": False,
-                    "help": "A classifier UUID to filter by. ex: 09d23a05-47fe-11e4-bfe9-b8f6b119e9ab",
-                },
-                {
-                    "name": "before",
-                    "required": False,
-                    "help": "Only return classifiers created before this date, ex: 2015-01-28T18:00:00.000",
-                },
-                {
-                    "name": "after",
-                    "required": False,
-                    "help": "Only return classifiers created after this date, ex: 2015-01-28T18:00:00.000",
-                },
-            ],
-        }
 
 
 class ContactsEndpoint(ListAPIMixin, WriteAPIMixin, DeleteAPIMixin, BaseEndpoint):
@@ -1892,6 +1811,9 @@ class GroupsEndpoint(ListAPIMixin, WriteAPIMixin, DeleteAPIMixin, BaseEndpoint):
      * **system** - whether this is a system group that can't be edited (bool).
      * **count** - the number of contacts in the group (int).
 
+    You can also pass `manual_only=1` to restrict the results to static (manual) groups — i.e. those whose members can
+    be added or removed directly (smart and system groups are excluded).
+
     Example:
 
         GET /api/v2/groups.json
@@ -1990,6 +1912,11 @@ class GroupsEndpoint(ListAPIMixin, WriteAPIMixin, DeleteAPIMixin, BaseEndpoint):
         # filter by name (optional)
         if name := params.get("name"):
             queryset = queryset.filter(name__iexact=name)
+
+        # restrict to static (manual) groups (optional) — used by the contact list's group dropdown, which can only
+        # add/remove members on manual groups (smart groups are maintained by their query)
+        if str_to_bool(params.get("manual_only")):
+            queryset = queryset.filter(group_type=ContactGroup.TYPE_MANUAL)
 
         return queryset.filter(is_active=True).exclude(status=ContactGroup.STATUS_INITIALIZING)
 

@@ -4,6 +4,8 @@
 .envrc
 .devcontainer
 .direnv
+orca
+orca.yaml
 .commit
 .ruff_cache
 .vscode/
@@ -19,6 +21,7 @@ node_modules
 screenshots
 sitestatic
 temba/settings.py
+temba/settings_local.py
 manage.sh
 rp.sh
 

@@ -30,6 +30,7 @@ from django.urls import reverse, reverse_lazy
 from django.utils import timezone
 from django.utils.encoding import DjangoUnicodeDecodeError, force_str
 from django.utils.functional import cached_property
+from django.utils.http import url_has_allowed_host_and_scheme
 from django.utils.translation import gettext_lazy as _
 
 from temba.api.models import Resthook
@@ -178,7 +179,7 @@ class UserCRUDL(SmartCRUDL):
         def team(self):
             from temba.tickets.models import Team
 
-            return get_object_or_404(Team, id=self.kwargs["team_id"])
+            return get_object_or_404(Team, id=self.kwargs["team_id"], org=self.request.org)
 
         def build_context_menu(self, menu):
             if not self.team.is_system:
@@ -405,7 +406,7 @@ class OrgCRUDL(SmartCRUDL):
         "choose",
         "delete",
         "menu",
-        "country",
+        "locations",
         "languages",
         "list",
         "create",
@@ -530,22 +531,6 @@ class OrgCRUDL(SmartCRUDL):
 
                     if len(items):
                         menu.append(self.create_menu_item(name=_("Channels"), items=items, inline=True))
-
-                if self.has_org_perm("classifiers.classifier_read"):
-                    items = []
-                    classifiers = org.classifiers.filter(is_active=True).order_by(Lower("name"))
-                    for classifier in classifiers:
-                        items.append(
-                            self.create_menu_item(
-                                menu_id=classifier.uuid,
-                                name=classifier.name,
-                                href=reverse("classifiers.classifier_read", args=[classifier.uuid]),
-                                icon=classifier.get_type().get_icon(),
-                            )
-                        )
-
-                    if len(items):
-                        menu.append(self.create_menu_item(name=_("Classifiers"), items=items, inline=True))
 
                 if self.has_org_perm("archives.archive_message"):
                     items = [
@@ -773,7 +758,7 @@ class OrgCRUDL(SmartCRUDL):
 
             try:
                 flows = [int(elt) for elt in flows]
-            except (ValueError, TypeError):
+            except ValueError, TypeError:
                 return JsonResponse({"error": _("'flows' must be a list of integers.")}, status=400)
 
             if not isinstance(campaigns, list):
@@ -781,7 +766,7 @@ class OrgCRUDL(SmartCRUDL):
 
             try:
                 campaigns = [int(elt) for elt in campaigns]
-            except (ValueError, TypeError):
+            except ValueError, TypeError:
                 return JsonResponse({"error": _("'campaigns' must contain only integers.")}, status=400)
 
             flow_ids = [elt for elt in flows if elt]
@@ -1098,7 +1083,13 @@ class OrgCRUDL(SmartCRUDL):
         # valid form means we set our org and redirect to next
         def form_valid(self, form):
             switch_to_org(self.request, form.cleaned_data["other_org"])
-            success_url = form.cleaned_data["next"] or reverse("orgs.org_start")
+            success_url = form.cleaned_data["next"]
+            if not success_url or not url_has_allowed_host_and_scheme(
+                success_url,
+                allowed_hosts={self.request.get_host()},
+                require_https=self.request.is_secure(),
+            ):
+                success_url = reverse("orgs.org_start")
             return HttpResponseRedirect(success_url)
 
     class Start(SmartTemplateView):
@@ -1463,8 +1454,8 @@ class OrgCRUDL(SmartCRUDL):
             if self.has_org_perm("orgs.org_languages"):
                 formax.add_section("languages", reverse("orgs.org_languages"), icon="language")
 
-            if self.has_org_perm("orgs.org_country") and "locations" in settings.FEATURES:
-                formax.add_section("country", reverse("orgs.org_country"), icon="location")
+            if self.has_org_perm("orgs.org_locations") and "locations" in settings.FEATURES:
+                formax.add_section("locations", reverse("orgs.org_locations"), icon="location")
 
             if self.has_org_perm("orgs.org_flow_smtp"):
                 formax.add_section("email", reverse("orgs.org_flow_smtp"), icon="email")
@@ -1492,9 +1483,9 @@ class OrgCRUDL(SmartCRUDL):
         def derive_exclude(self):
             return ["language"] if len(settings.LANGUAGES) == 1 else []
 
-    class Country(FormaxSectionMixin, InferOrgMixin, OrgPermsMixin, SmartUpdateView):
+    class Locations(FormaxSectionMixin, InferOrgMixin, OrgPermsMixin, SmartUpdateView):
         class CountryForm(forms.ModelForm):
-            country = forms.ModelChoiceField(
+            root_location = forms.ModelChoiceField(
                 Org.get_possible_countries(),
                 required=False,
                 label=_("The country used for location values. (optional)"),
@@ -1504,7 +1495,7 @@ class OrgCRUDL(SmartCRUDL):
 
             class Meta:
                 model = Org
-                fields = ("country",)
+                fields = ("root_location",)
 
         form_class = CountryForm
 
@@ -1622,7 +1613,7 @@ class OrgCRUDL(SmartCRUDL):
             if self.request.META.get("HTTP_X_REQUESTED_WITH") == "XMLHttpRequest" and self.request.method == "GET":
                 return "orgs.org_languages"
             else:
-                return "orgs.org_country"
+                return "orgs.org_locations"
 
 
 class InvitationCRUDL(SmartCRUDL):
@@ -1738,7 +1729,7 @@ class OrgImportCRUDL(SmartCRUDL):
                 data = self.cleaned_data["file"].read()
                 try:
                     json_data = json.loads(force_str(data))
-                except (DjangoUnicodeDecodeError, ValueError):
+                except DjangoUnicodeDecodeError, ValueError:
                     raise ValidationError(_("This file is not a valid flow definition file."))
 
                 if Version(str(json_data.get("version", 0))) < Version(Org.EARLIEST_IMPORT_VERSION):

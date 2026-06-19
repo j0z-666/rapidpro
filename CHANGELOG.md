@@ -1,3 +1,337 @@
+v26.2.2 (2026-06-18)
+-------------------------
+ * Bump cryptography from 46.0.7 to 48.0.1
+ * Bump aiohttp from 3.14.0 to 3.14.1
+
+v26.2.1 (2026-06-16)
+-------------------------
+ * Remove dead MailroomClient.version() method
+ * Bump pyjwt from 2.12.1 to 2.13.0
+
+v26.2.0 (2026-06-15)
+-------------------------
+ * Standardize WhatsApp Graph API calls on v22.0 via a shared base URL constant
+ * Use a distinct retry-able error when the senders API fails during claim
+ * Support claiming Twilio WhatsApp senders that aren't incoming numbers
+
+v26.1.134 (2026-06-11)
+-------------------------
+ * Make Turn.io channel type available to all orgs
+ * Relax WhatsApp scope check to business_management across all claim steps
+
+v26.1.133 (2026-06-11)
+-------------------------
+ * Include debug_token response in WhatsApp connect failure logs
+
+v26.1.132 (2026-06-11)
+-------------------------
+ * Merge pull request #6663 from nyaruka/whatsapp-connect-logging
+ * Redact app credentials from WhatsApp connect failure logs
+ * Log underlying exception when WhatsApp Cloud connect fails
+
+v26.1.131 (2026-06-10)
+-------------------------
+ * Fix flow start read modal for URN-only starts and split creator/date
+
+v26.1.130 (2026-06-10)
+-------------------------
+ * Redesign flow starts list as single-line rows with a details modal
+ * Add preview-mode contact list backed by internal contacts API
+
+v26.1.129 (2026-06-04)
+-------------------------
+ * Update @nyaruka/temba-components to 0.159.3
+ * Use full name instead of first name in user chat ref
+ * Bump aiohttp from 3.13.5 to 3.14.0
+ * Fix two-way messaging in msg_console across containers
+
+v26.1.128 (2026-06-01)
+-------------------------
+ * Refresh airtime transfers list page
+
+v26.1.127 (2026-05-29)
+-------------------------
+ * Restore active contact tab on browser back by keeping ?tab in history url
+ * Replace contact scheduled view with full event timeline
+
+v26.1.126 (2026-05-28)
+-------------------------
+ * Update @nyaruka/temba-components to 0.159.1
+ * Remove classifiers app
+ * Make components dev URL configurable via COMPONENTS_DEV_URL setting
+ * Hide PO translation export/import menu items in flow editor
+ * Add new cookie-gated message list backed by internal messages API
+
+v26.1.125 (2026-05-28)
+-------------------------
+ * Expand AirtimeTransfer status choices
+ * Update @nyaruka/temba-components to 0.159.0
+
+v26.1.124 (2026-05-27)
+-------------------------
+ * Update dev MAILROOM_URL default to use new internal listener port 8091
+ * Update mailroom version used in CI tests to 26.1.126
+ * Bump Flow.CURRENT_SPEC_VERSION to 14.4.1
+
+v26.1.123 (2026-05-27)
+-------------------------
+ * Add Pending and Reversed statuses to AirtimeTransfer
+
+v26.1.122 (2026-05-27)
+-------------------------
+ * Update @nyaruka/temba-components to 0.158.3
+
+v26.1.121 (2026-05-26)
+-------------------------
+ * Require Python 3.14.5+
+
+v26.1.120 (2026-05-26)
+-------------------------
+ * Run gc.collect() after each export
+
+v26.1.119 (2026-05-25)
+-------------------------
+ * Remove KN insecure HTTP requests config
+ * Simplify Infobip and SignalWire claim forms
+ * Bump idna from 3.13 to 3.15
+ * Drop unused channel types
+
+v26.1.118 (2026-05-18)
+-------------------------
+ * Cleanup of types
+
+v26.1.117 (2026-05-15)
+-------------------------
+ * Swap order of When and Field columns on campaign read page
+
+v26.1.116 (2026-05-15)
+-------------------------
+ * Render campaign event field as a clickable pill
+ * Restore onclick=goto on non-anchor clickable rows
+
+v26.1.115 (2026-05-14)
+-------------------------
+ * Reorder webhook log columns to put URL first and Flow fourth
+
+v26.1.114 (2026-05-14)
+-------------------------
+ * Update @nyaruka/temba-components to 0.158.1
+
+v26.1.113 (2026-05-14)
+-------------------------
+ * Tidy contact/ticket detail layouts and remove notepad tab styling overrides
+
+v26.1.112 (2026-05-14)
+-------------------------
+ * Fix list-view UI nits across messages, login, and clickable pills
+
+v26.1.111 (2026-05-13)
+-------------------------
+ * Add TextIt design system tokens, components, and style guide
+
+v26.1.110 (2026-05-12)
+-------------------------
+ * Update mailroom client to use new /mi/ path for internal endpoints
+ * Bump urllib3 from 2.6.3 to 2.7.0
+ * Bump django from 5.2.13 to 5.2.14
+
+v26.1.109 (2026-05-07)
+-------------------------
+ * Simplify trim to keep MAX_REVISIONS most recent
+ * Trim flow revisions on save
+
+v26.1.108 (2026-05-06)
+-------------------------
+ * Update @nyaruka/temba-components to 0.156.18
+ * Fix revision changes backfill: capture spec tag in compute_changes
+
+v26.1.107 (2026-05-05)
+-------------------------
+ * Backfill changes field on historical flow revisions
+
+v26.1.106 (2026-05-05)
+-------------------------
+ * Update @nyaruka/temba-components to 0.156.17
+ * Skip creating new flow revisions when definition is unchanged
+ * Hardcode stable UUIDs for root and system users in mailroom_db dump
+ * Disable mailroom task processing in CI and mailroom_db dev command
+
+v26.1.105 (2026-05-04)
+-------------------------
+ * Update @nyaruka/temba-components to 0.156.16
+
+v26.1.104 (2026-05-04)
+-------------------------
+ * Track categorized changes on each FlowRevision
+
+v26.1.103 (2026-05-04)
+-------------------------
+ * Add LLMCount model for tracking daily LLM call and token usage
+
+v26.1.102 (2026-04-29)
+-------------------------
+ * Update dependencies
+ * Use python 3.14
+
+v26.1.101 (2026-04-29)
+-------------------------
+ * Add urn_path field to messages Elasticsearch index template
+
+v26.1.100 (2026-04-29)
+-------------------------
+ * Remove auto_translate as an org feature flag
+ * Update @nyaruka/temba-components to 0.156.15
+
+v26.1.99 (2026-04-29)
+-------------------------
+ * Pass brand name to temba-store component
+
+v26.1.98 (2026-04-28)
+-------------------------
+ * Update @nyaruka/temba-components to 0.156.14
+ * Bump serialize-javascript from 7.0.3 to 7.0.5
+ * Upgrade to elasticsearch 9
+
+v26.1.97 (2026-04-27)
+-------------------------
+ * Prevent editing and deleting LLMs with is_system=True
+ * Remove unused React references from static config and CSS
+ * Bump postcss from 8.4.38 to 8.5.10
+ * Update @nyaruka/temba-components to 0.156.13
+ * Add auto_translate org feature to enable AI translation in flow editor
+
+v26.1.96 (2026-04-23)
+-------------------------
+ * Add max_output_tokens field to LLM with backfill from settings
+ * Switch LLM types back to explicit model allow-lists keyed by max output tokens
+
+v26.1.95 (2026-04-23)
+-------------------------
+ * Update @nyaruka/temba-components to 0.156.12
+ * Update mailroom client llm_translate to use batched shape
+
+v26.1.94 (2026-04-22)
+-------------------------
+ * Update @nyaruka/temba-components to 0.156.11
+ * Modernize campaign message events to use temba-compose widget
+
+v26.1.93 (2026-04-22)
+-------------------------
+ * Add template and template_variables fields to CampaignEvent
+ * Bump cryptography from 46.0.6 to 46.0.7
+ * Add roles field to LLM model
+
+v26.1.92 (2026-04-21)
+-------------------------
+ * Bump pillow from 12.1.1 to 12.2.0
+ * Update Django from 5.2.12 to 5.2.13
+ * Switch from Poetry to uv for Python dependency management
+
+v26.1.91 (2026-04-21)
+-------------------------
+ * Update @nyaruka/temba-components to 0.156.10
+ * Filter deleted shortcuts from internal shortcuts endpoint
+
+v26.1.90 (2026-04-16)
+-------------------------
+ * Update @nyaruka/temba-components to 0.156.9
+ * Remove unused intercooler dependency and orphaned templates
+ * Rename org_country.html template to org_locations.html
+ * Remove classic flow editor and consolidate to new editor
+ * Harden request validation in android sync and org switch views
+
+v26.1.89 (2026-04-16)
+-------------------------
+ * Update @nyaruka/temba-components to 0.156.8
+
+v26.1.88 (2026-04-15)
+-------------------------
+ * Update @nyaruka/temba-components to 0.156.7
+
+v26.1.87 (2026-04-09)
+-------------------------
+ * Retire classic editor and force users to new editor
+
+v26.1.86 (2026-04-09)
+-------------------------
+ * Merge pull request #6555 from nyaruka/update-temba-components-0.156.6
+ * Update @nyaruka/temba-components to 0.156.6
+
+v26.1.85 (2026-04-09)
+-------------------------
+ * Update @nyaruka/temba-components to 0.156.5
+
+v26.1.84 (2026-04-09)
+-------------------------
+ * Merge pull request #6553 from nyaruka/update-temba-components-0.156.4
+
+v26.1.83 (2026-04-08)
+-------------------------
+ * Update @nyaruka/temba-components to 0.156.3
+
+v26.1.82 (2026-04-08)
+-------------------------
+ * Update @nyaruka/temba-components to 0.156.2
+ * Hide simulator when flow editor is in message view
+
+v26.1.81 (2026-04-08)
+-------------------------
+ * Update @nyaruka/temba-components to 0.156.0
+
+v26.1.80 (2026-04-08)
+-------------------------
+ * Tighten org scoping on a few list/lookup views
+
+v26.1.79 (2026-04-07)
+-------------------------
+ * Add support for bsuid URN scheme
+
+v26.1.78 (2026-04-02)
+-------------------------
+ * Enable chat search for contacts with last_seen_on
+ * Update @nyaruka/temba-components to 0.155.0
+
+v26.1.77 (2026-04-02)
+-------------------------
+ * Bump lodash from 4.17.23 to 4.18.1
+ * Remove Org.country field and rename Country view to Locations
+ * Bump aiohttp from 3.13.3 to 3.13.4
+ * Bump anthropic from 0.86.0 to 0.87.0
+ * Fix SPA back button race condition and initial page state
+
+v26.1.76 (2026-04-01)
+-------------------------
+ * Replace old editor banner with prominent retirement warning, remove new editor welcome banner
+ * Contact exports are now UUID based
+ * Stop writing Org.country, switch all reads to Org.root_location
+
+v26.1.75 (2026-04-01)
+-------------------------
+ * Add Org.root_location field with dual-write from Org.country
+ * Support contact_uuids in mailroom contact_export response
+ * Update contact_deindex and contact_reindex to send contacts by UUID
+
+v26.1.74 (2026-03-31)
+-------------------------
+ * Remove phone number honeypot from signup form
+ * Fix slow editor load for flows with many starts
+ * Defer workspace creation until after email verification
+ * Mailroom now always returns UUIDs when searching contacts
+
+v26.1.73 (2026-03-31)
+-------------------------
+ * Remove channel log_policy field
+
+v26.1.72 (2026-03-31)
+-------------------------
+ * Remove deprecated exclude_ids from contact search request
+ * Support contact_uuids in mailroom search responses
+ * Bump valkey from 8.0 to 8.1 in CI
+
+v26.1.71 (2026-03-30)
+-------------------------
+ * Restore message searching by name
+
 v26.1.70 (2026-03-30)
 -------------------------
  * Remove no longer needed indexes on contact

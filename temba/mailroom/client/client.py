@@ -46,9 +46,6 @@ class MailroomClient:
         if auth_token:
             self.headers["Authorization"] = "Token " + auth_token
 
-    def version(self):
-        return self._request("", post=False).get("version")
-
     def android_event(self, org, channel, phone: str, event_type: str, extra: dict, occurred_on):
         return self._request(
             "android/event",
@@ -95,7 +92,6 @@ class MailroomClient:
             "contact/deindex",
             {
                 "org_id": org.id,
-                "contact_ids": [c.id for c in contacts],
                 "contact_uuids": [str(c.uuid) for c in contacts],
             },
         )
@@ -105,14 +101,14 @@ class MailroomClient:
             "contact/reindex",
             {
                 "org_id": org.id,
-                "contact_ids": [c.id for c in contacts],
+                "contact_uuids": [str(c.uuid) for c in contacts],
             },
         )
 
-    def contact_export(self, org, group, query: str) -> list[int]:
+    def contact_export(self, org, group, query: str) -> list[str]:
         resp = self._request("contact/export", {"org_id": org.id, "group_id": group.id, "query": query})
 
-        return resp["contact_ids"]
+        return resp["contact_uuids"]
 
     def contact_export_preview(self, org, group, query: str) -> int:
         resp = self._request("contact/export_preview", {"org_id": org.id, "group_id": group.id, "query": query})
@@ -160,7 +156,6 @@ class MailroomClient:
             {
                 "org_id": org.id,
                 "group_id": group.id,
-                "exclude_ids": [c.id for c in exclude],  # deprecated but needed until we're done with Elastic
                 "exclude_uuids": [str(c.uuid) for c in exclude],
                 "query": query,
                 "sort": sort,
@@ -172,7 +167,7 @@ class MailroomClient:
         return SearchResults(
             query=resp["query"],
             total=resp["total"],
-            contact_ids=resp["contact_ids"],
+            contact_uuids=resp["contact_uuids"],
             metadata=QueryMetadata(**resp.get("metadata", {})),
         )
 
@@ -254,17 +249,18 @@ class MailroomClient:
 
         return RecipientsPreview(query=resp["query"], total=resp["total"])
 
-    def llm_translate(self, llm, from_language: str, to_language: str, text: str) -> dict:
-        return self._request(
+    def llm_translate(self, llm, source: str, target: str, items: dict[str, list[str]]) -> dict[str, list[str]]:
+        resp = self._request(
             "llm/translate",
             {
                 "org_id": llm.org_id,
                 "llm_id": llm.id,
-                "from_language": from_language,
-                "to_language": to_language,
-                "text": text,
+                "source": source,
+                "target": target,
+                "items": items,
             },
         )
+        return resp["items"]
 
     def msg_broadcast(
         self,
@@ -483,7 +479,7 @@ class MailroomClient:
             kwargs = dict(json=payload)
 
         req_fn = requests.post if post else requests.get
-        response = req_fn("%s/mr/%s" % (self.base_url, endpoint), headers=headers, **kwargs)
+        response = req_fn("%s/mi/%s" % (self.base_url, endpoint), headers=headers, **kwargs)
 
         if response.headers.get("Content-Type") == "application/json":
             resp_body = response.json()

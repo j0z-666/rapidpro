@@ -11,7 +11,6 @@ from django.urls import reverse
 from temba import mailroom
 from temba.api.models import Resthook
 from temba.campaigns.models import Campaign, CampaignEvent
-from temba.classifiers.models import Classifier
 from temba.contacts.models import URN
 from temba.flows.models import Flow, FlowLabel, FlowRun, FlowStart, FlowUserConflictException, ResultsExport
 from temba.mailroom.client.types import Exclusions
@@ -689,7 +688,8 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
         response = self.client.get(reverse("flows.flow_filter", args=[label2.uuid]))
         self.assertEqual(f"/flow/labels/{label2.uuid}", response.headers.get(TEMBA_MENU_SELECTION))
 
-    def test_get_definition(self):
+    @mock_mailroom
+    def test_get_definition(self, mr_mocks):
         flow = self.get_flow("color_v13")
 
         # if definition is outdated, metadata values are updated from db object
@@ -725,7 +725,8 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
 
         self.assertEqual("Amazing Flow 2", flow.get_definition()["metadata"]["name"])
 
-    def test_revisions(self):
+    @mock_mailroom
+    def test_revisions(self, mr_mocks):
         flow = self.get_flow("legacy/color_v11")
 
         revisions_url = reverse("flows.flow_revisions", args=[flow.uuid])
@@ -738,8 +739,10 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
         revision.spec_version = "11.12"
         revision.save(update_fields=("definition", "spec_version"))
 
-        # create a new migrated revision
+        # create a new migrated revision (rename so the save isn't a no-op)
         flow_def = revision.get_migrated_definition()
+        flow.name = "Color Renamed"
+        flow.save(update_fields=("name",))
         flow.save_revision(self.admin, flow_def)
 
         revisions = list(flow.revisions.all().order_by("-created_on"))
@@ -761,6 +764,7 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
                     "id": revisions[0].id,
                     "version": Flow.CURRENT_SPEC_VERSION,
                     "revision": 2,
+                    "changes": {"tags": ["routing", "spec"]},
                 },
                 {
                     "user": {"email": "admin@textit.com", "name": "Andy"},
@@ -768,6 +772,7 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
                     "id": revisions[1].id,
                     "version": "11.12",
                     "revision": 1,
+                    "changes": {},
                 },
             ],
             response.json()["results"],
@@ -818,13 +823,22 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
         response = self.client.post(revisions_url, definition, content_type="application/json")
         self.assertEqual(302, response.status_code)
 
-        # check that we can create a new revision
+        # posting the unchanged definition is a no-op — no new revision created
         self.login(self.admin)
+        response = self.client.post(revisions_url, definition, content_type="application/json")
+        same_revision = response.json()
+        self.assertEqual(1, same_revision["revision"][Flow.DEFINITION_REVISION])
+        self.assertEqual(1, flow.revisions.count())
+
+        # but a real change creates a new revision (rename the flow so the next save
+        # picks up a metadata diff via the live flow.name)
+        flow.name = "Renamed Flow"
+        flow.save(update_fields=("name",))
         response = self.client.post(revisions_url, definition, content_type="application/json")
         new_revision = response.json()
         self.assertEqual(2, new_revision["revision"][Flow.DEFINITION_REVISION])
 
-        # but we can't save our old revision
+        # we can't save our old revision number
         response = self.client.post(revisions_url, definition, content_type="application/json")
         self.assertResponseError(
             response, "description", "Your changes will not be saved until you refresh your browser"
@@ -1110,37 +1124,35 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
         flow = self.create_flow("Test")
 
         self.login(self.admin)
-        self.client.cookies["use-new-editor"] = "false"
 
         def assert_features(features: set):
             response = self.client.get(reverse("flows.flow_editor", args=[flow.uuid]))
             self.assertEqual(features, set(json.loads(response.context["feature_filters"])))
 
+        # auto_translate is always available
+        assert_features({"auto_translate"})
+
         # add a resthook
         Resthook.objects.create(org=flow.org, created_by=self.admin, modified_by=self.admin)
-        assert_features({"resthook"})
-
-        # add an NLP classifier
-        Classifier.objects.create(org=flow.org, config="", created_by=self.admin, modified_by=self.admin)
-        assert_features({"classifier", "resthook"})
+        assert_features({"auto_translate", "resthook"})
 
         # add a DT One integration
         DTOneType().connect(flow.org, self.admin, "login", "token")
-        assert_features({"airtime", "classifier", "resthook"})
+        assert_features({"auto_translate", "airtime", "resthook"})
 
         # change our channel to use a whatsapp scheme
         self.channel.schemes = [URN.WHATSAPP_SCHEME]
         self.channel.save()
-        assert_features({"whatsapp", "airtime", "classifier", "resthook"})
+        assert_features({"auto_translate", "whatsapp", "airtime", "resthook"})
 
         # change our channel to use a facebook scheme
         self.channel.schemes = [URN.FACEBOOK_SCHEME]
         self.channel.save()
-        assert_features({"optins", "airtime", "classifier", "resthook"})
+        assert_features({"auto_translate", "optins", "airtime", "resthook"})
 
         self.setUpLocations()
 
-        assert_features({"optins", "airtime", "classifier", "resthook", "locations"})
+        assert_features({"auto_translate", "optins", "airtime", "resthook", "locations"})
 
     @mock_mailroom
     def test_template_warnings(self, mr_mocks):
@@ -1444,7 +1456,8 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
             ),
         )
 
-    def test_copy_view(self):
+    @mock_mailroom
+    def test_copy_view(self, mr_mocks):
         flow = self.get_flow("color_v13")
 
         self.login(self.admin)
@@ -1787,6 +1800,11 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
 
         self.login(self.admin)
 
+        # rename so the next save isn't a no-op (identical definitions don't create
+        # a new revision)
+        flow.name = "Favorites Renamed"
+        flow.save(update_fields=("name",))
+
         # saving should work
         flow.save_revision(self.admin, flow_json)
 
@@ -1820,7 +1838,8 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
             response.json(),
         )
 
-    def test_change_language(self):
+    @mock_mailroom
+    def test_change_language(self, mr_mocks):
         self.org.set_flow_languages(self.admin, ["eng", "spa", "ara"])
 
         flow = self.get_flow("favorites_v13")
@@ -1962,7 +1981,7 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
                 actual_payload = json.loads(mock_post.call_args_list[0][1]["data"])
                 actual_headers = mock_post.call_args_list[0][1]["headers"]
 
-                self.assertEqual(actual_url, "https://mailroom.temba.io/mr/sim/start")
+                self.assertEqual(actual_url, "https://mailroom.temba.io/mi/sim/start")
                 self.assertEqual(actual_payload["org_id"], flow.org_id)
                 self.assertEqual(
                     {"type": "manual", "user": {"uuid": str(self.admin.uuid), "name": "Andy"}},
@@ -1995,7 +2014,7 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
                 actual_payload = json.loads(mock_post.call_args_list[0][1]["data"])
                 actual_headers = mock_post.call_args_list[0][1]["headers"]
 
-                self.assertEqual(actual_url, "https://mailroom.temba.io/mr/sim/resume")
+                self.assertEqual(actual_url, "https://mailroom.temba.io/mi/sim/resume")
                 self.assertEqual(actual_payload["org_id"], flow.org_id)
                 self.assertEqual(len(actual_payload["assets"]["channels"]), 1)  # fake channel
                 self.assertEqual(actual_headers["Authorization"], "Token sesame")
@@ -2080,7 +2099,8 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
         # can't delete already released flow
         self.assertEqual(response.status_code, 404)
 
-    def test_export_and_download_translation(self):
+    @mock_mailroom
+    def test_export_and_download_translation(self, mr_mocks):
         self.org.set_flow_languages(self.admin, ["spa"])
 
         flow = self.get_flow("favorites")
@@ -2119,7 +2139,8 @@ class FlowCRUDLTest(TembaTest, CRUDLTestMixin):
             # filename includes language now
             self.assertEqual('attachment; filename="favorites.spa.po"', response["Content-Disposition"])
 
-    def test_import_translation(self):
+    @mock_mailroom
+    def test_import_translation(self, mr_mocks):
         self.org.set_flow_languages(self.admin, ["eng", "spa"])
 
         flow = self.get_flow("favorites_v13")
@@ -2220,9 +2241,12 @@ msgstr "Azul"
         self.assertContains(response, "Spanish (spa)")
         self.assertEqual({"language": "spa"}, response.context["form"].initial)
 
-        # confirm the import
+        # confirm the import — the imported definition has new Spanish localization
+        # so it's a real change (no-op imports don't create a new revision)
+        imported_def = flow.get_definition()
+        imported_def["localization"] = {"spa": {"a4d15ed4-5b24-407f-b86e-4b881f09a186": {"arguments": ["Azul"]}}}
         with patch("temba.mailroom.client.client.MailroomClient.po_import") as mock_po_import:
-            mock_po_import.return_value = {"flows": [flow.get_definition()]}
+            mock_po_import.return_value = {"flows": [imported_def]}
 
             response = self.requestView(step2_url, self.admin, post_data={"language": "spa"})
 

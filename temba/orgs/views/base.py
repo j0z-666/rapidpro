@@ -284,14 +284,24 @@ class BaseExportModal(ModalFormMixin, OrgPermsMixin, SmartFormView):
             ContactField.objects.none(),
             required=False,
             label=_("Fields"),
-            widget=SelectMultipleWidget(attrs={"placeholder": _("Optional: Fields to include"), "searchable": True}),
+            widget=SelectMultipleWidget(
+                attrs={
+                    "placeholder": _("Optional: Fields to include"),
+                    "searchable": True,
+                    "pill_type": "field",
+                }
+            ),
         )
         with_groups = forms.ModelMultipleChoiceField(
             ContactGroup.objects.none(),
             required=False,
             label=_("Groups"),
             widget=SelectMultipleWidget(
-                attrs={"placeholder": _("Optional: Group memberships to include"), "searchable": True}
+                attrs={
+                    "placeholder": _("Optional: Group memberships to include"),
+                    "searchable": True,
+                    "pill_type": "group",
+                }
             ),
         )
 
@@ -410,6 +420,14 @@ class BaseDependencyDeleteModal(DependencyMixin, ModalFormMixin, OrgObjPermsMixi
         "campaign_event": _("these will be removed"),  # soft for fields and flows
         "trigger": _("these will be removed"),  # soft for flows
     }
+
+    def get_queryset(self, **kwargs):
+        qs = super().get_queryset(**kwargs)
+
+        if hasattr(self.model, "is_system"):
+            qs = qs.filter(is_system=False)
+
+        return qs
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)

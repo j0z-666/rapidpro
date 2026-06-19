@@ -142,7 +142,6 @@ class FlowCRUDL(SmartCRUDL):
         "import_translation",
         "export_results",
         "editor",
-        "next",
         "results",
         "result_chart",
         "preview_start",
@@ -715,11 +714,6 @@ class FlowCRUDL(SmartCRUDL):
             return qs.filter(org=self.request.org, labels=self.label, is_archived=False).order_by("-created_on")
 
     class Editor(SpaMixin, ContextMenuMixin, BaseReadView):
-        def get(self, request, *args, **kwargs):
-            if request.COOKIES.get("use-new-editor") != "false" and self.__class__.__name__ != "Next":
-                return HttpResponseRedirect(reverse("flows.flow_next", args=[kwargs["uuid"]]))
-            return super().get(request, *args, **kwargs)
-
         def derive_menu_path(self):
             if self.object.is_archived:
                 return "/flow/archived"
@@ -749,7 +743,7 @@ class FlowCRUDL(SmartCRUDL):
             return context
 
         def get_features(self, org) -> list:
-            features = []
+            features = ["auto_translate"]
 
             facebook_channel = org.get_channel(Channel.ROLE_SEND, scheme=URN.FACEBOOK_SCHEME)
             whatsapp_channel = org.get_channel(Channel.ROLE_SEND, scheme=URN.WHATSAPP_SCHEME)
@@ -760,11 +754,9 @@ class FlowCRUDL(SmartCRUDL):
                 features.append("whatsapp")
             if org.get_integrations(IntegrationType.Category.AIRTIME):
                 features.append("airtime")
-            if org.classifiers.filter(is_active=True).exists():
-                features.append("classifier")
             if org.get_resthooks():
                 features.append("resthook")
-            if org.country_id:
+            if org.root_location_id:
                 features.append("locations")
 
             return features
@@ -811,48 +803,6 @@ class FlowCRUDL(SmartCRUDL):
 
             if self.has_org_perm("orgs.org_export"):
                 menu.add_link(_("Export Definition"), f"{reverse('orgs.org_export')}?flow={obj.id}")
-
-            # limit PO export/import to non-archived flows since mailroom doesn't know about archived flows
-            if not obj.is_archived:
-                menu.add_modax(
-                    _("Export Translation"),
-                    "export-translation",
-                    reverse("flows.flow_export_translation", args=[obj.id]),
-                )
-
-                if self.has_org_perm("flows.flow_update"):
-                    menu.add_link(_("Import Translation"), reverse("flows.flow_import_translation", args=[obj.id]))
-
-            menu.new_group()
-            menu.add_js("enableNewEditor", _("Switch to New Editor"))
-
-    class Next(Editor):
-        template_name = "flows/flow_next.html"
-
-        def get(self, request, *args, **kwargs):
-            response = super().get(request, *args, **kwargs)
-
-            # show banner on first auto-redirect, then set cookie so it doesn't show again
-            if not request.COOKIES.get("new-editor-introduced") and request.COOKIES.get("use-new-editor") != "true":
-                response.set_cookie("new-editor-introduced", "true", path="/", max_age=31536000)
-
-            return response
-
-        def get_context_data(self, *args, **kwargs):
-            context = super().get_context_data(*args, **kwargs)
-            context["show_new_editor_banner"] = (
-                not self.request.COOKIES.get("new-editor-introduced")
-                and self.request.COOKIES.get("use-new-editor") != "true"
-            )
-            return context
-
-        def build_context_menu(self, menu):
-            super().build_context_menu(menu)
-
-            # replace "Switch to New Editor" with "Use Classic Editor"
-            menu.groups[-1] = [
-                {"type": "js", "id": "useClassicEditor", "label": str(_("Use Classic Editor")), "as_button": False}
-            ]
 
     class ChangeLanguage(OrgObjPermsMixin, SmartUpdateView):
         class Form(forms.Form):
@@ -1734,7 +1684,7 @@ class FlowLabelCRUDL(SmartCRUDL):
 
 class FlowStartCRUDL(SmartCRUDL):
     model = FlowStart
-    actions = ("list", "interrupt", "status")
+    actions = ("list", "read", "interrupt", "status")
 
     class List(SpaMixin, BaseListView):
         title = _("Flow Starts")
@@ -1767,7 +1717,21 @@ class FlowStartCRUDL(SmartCRUDL):
 
             return context
 
-    class Status(OrgPermsMixin, SmartListView):
+    class Read(BaseReadView):
+        template_name = "flows/flowstart_read.html"
+
+        def derive_queryset(self, **kwargs):
+            qs = super().derive_queryset(**kwargs)
+            return qs.select_related("flow", "created_by").prefetch_related("contacts", "groups")
+
+        def get_context_data(self, *args, **kwargs):
+            context = super().get_context_data(*args, **kwargs)
+
+            FlowStartCount.bulk_annotate([self.object])
+
+            return context
+
+    class Status(BaseListView):
         permission = "flows.flowstart_list"
 
         def derive_queryset(self, **kwargs):
