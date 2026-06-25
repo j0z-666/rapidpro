@@ -137,6 +137,7 @@ class IntegrationType(metaclass=ABCMeta):
 class OrgRole(Enum):
     ADMINISTRATOR = ("A", _("Administrator"), _("Administrators"), "Administrators", "msgs.msg_inbox")
     EDITOR = ("E", _("Editor"), _("Editors"), "Editors", "msgs.msg_inbox")
+    VIEWER = ("V", _("Viewer"), _("Viewers"), "Viewers", "msgs.msg_inbox")  
     AGENT = ("T", _("Agent"), _("Agents"), "Agents", "tickets.ticket_list")
 
     def __init__(self, code: str, display: str, display_plural: str, group_name: str, start_view: str):
