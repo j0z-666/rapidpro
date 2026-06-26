@@ -275,6 +275,8 @@ class FlowCRUDL(SmartCRUDL):
             )
 
         def post(self, request, *args, **kwargs):
+            if not self.has_org_perm("flows.flow_update"):  
+                return JsonResponse({"status": "failure", "description": "Permission denied."}, status=403)  
             # try to parse our body
             definition = json.loads(force_str(request.body))
             try:
